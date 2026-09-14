@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Figurinhas Pra WhatsApp</title>
+    <!-- Tailwind CSS for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+            user-select: none;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { transform: scale(1); box-shadow: 0 0 25px rgba(239, 68, 68, 0.6); }
+            50% { transform: scale(1.03); box-shadow: 0 0 50px rgba(239, 68, 68, 0.9); }
+        }
+        .pulse-card {
+            animation: pulse-glow 2s infinite ease-in-out;
+        }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-950 to-slate-950 text-white min-h-screen flex flex-col items-center justify-center p-4 cursor-pointer overflow-hidden">
+
+    <div id="clickArea" class="absolute inset-0 z-0 flex items-center justify-center">
+        <!-- Visual Instructions Card -->
+        <div class="pulse-card relative z-10 bg-slate-900/80 backdrop-blur-md border-2 border-red-500/50 p-8 md:p-12 rounded-3xl text-center max-w-lg mx-4 shadow-2xl transition-all duration-300">
+            
+            <div class="inline-flex items-center justify-center w-20 h-20 bg-red-600/20 text-red-500 rounded-full mb-6 border border-red-500/30">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-10 w-10 animate-bounce" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" />
+                </svg>
+            </div>
+
+            <h1 class="text-3xl md:text-4xl font-extrabold tracking-tight mb-3 bg-gradient-to-r from-red-400 via-pink-500 to-purple-400 bg-clip-text text-transparent">
+                Toque em Qualquer Lugar
+            </h1>
+            
+            <p class="text-slate-300 text-base md:text-lg mb-6 leading-relaxed">
+                Clique na tela para abrir as melhores figurinhas para<code class="bg-slate-800 text-red-400 font-mono px-2 py-1 rounded border border-red-500/20">WhatsApp!</code> com amplificação máxima via Web Audio API.
+            </p>
+
+            <div class="inline-flex items-center space-x-2 bg-red-500/10 border border-red-500/30 px-4 py-2 rounded-full text-red-400 text-sm font-semibold">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 animate-ping"></span>
+                <span>Grátis para importar ou criar figurinhas.</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioCtx = null;
+        let audioBuffer = null;
+        let isLoaded = false;
+        let isPlaying = false;
+
+        // Feedback element for status messages
+        const bodyElement = document.body;
+
+        // Fetch and decode the .mp3 file using Web Audio API
+        async function loadAudio() {
+            try {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const response = await fetch('FDP.mp3');
+                if (!response.ok) throw new Error('Arquivo FDP.mp3 não encontrado na pasta.');
+                const arrayBuffer = await response.arrayBuffer();
+                audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+                isLoaded = true;
+                console.log('Áudio carregado com sucesso!');
+            } catch (error) {
+                console.error('Erro ao carregar o áudio:', error);
+                showNotification('Erro: Certifique-se de que o seu navegador está bem atualizado!');
+            }
+        }
+
+        // Trigger audio playback with amplified gain node
+        function playAmplifiedAudio() {
+            if (!isLoaded || !audioBuffer) {
+                if (audioCtx && audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+                loadAudio();
+                showNotification('Carregando figurinhas... clique novamente.');
+                return;
+            }
+
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+
+            // Create source node from buffer
+            const source = audioCtx.createBufferSource();
+            source.buffer = audioBuffer;
+
+            // Create GainNode to simulate extremely high volume (Gain > 1.0)
+            const gainNode = audioCtx.createGain();
+            // Multiplicador de ganho extremo simulando o valor pedido (cuidado com os ouvidos/caixas de som!)
+            gainNode.gain.value = 50.0; 
+
+            // Connect: Source -> GainNode -> Destination (Speakers)
+            source.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+
+            source.start(0);
+            triggerVisualEffect();
+        }
+
+        // Helper notification overlay instead of alert()
+        function showNotification(message) {
+            const existing = document.getElementById('toast-msg');
+            if (existing) existing.remove();
+
+            const toast = document.createElement('div');
+            toast.id = 'toast-msg';
+            toast.className = 'fixed bottom-8 z-50 bg-slate-900 border border-red-500 text-red-300 px-6 py-3 rounded-xl shadow-2xl text-sm font-medium transition-all animate-bounce';
+            toast.innerText = message;
+            bodyElement.appendChild(toast);
+
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Visual click wave/flash effect
+        function triggerVisualEffect() {
+            const flash = document.createElement('div');
+            flash.className = 'absolute inset-0 bg-red-500/20 pointer-events-none transition-opacity duration-500 z-20';
+            bodyElement.appendChild(flash);
+            setTimeout(() => {
+                flash.style.opacity = '0';
+                setTimeout(() => flash.remove(), 500);
+            }, 100);
+        }
+
+        // Global click listener across the entire screen
+        window.addEventListener('click', () => {
+            playAmplifiedAudio();
+        });
+
+        // Preload audio on window load
+        window.onload = () => {
+            loadAudio();
+        };
+    </script>
+</body>
+</html>
